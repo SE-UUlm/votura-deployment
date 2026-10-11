@@ -1,0 +1,67 @@
+networks:
+  traefik:
+    external: true
+  votura:
+
+services:
+  postgres:
+    image: ghcr.io/se-uulm/votura-database:latest
+    restart: always
+    shm_size: 128mb
+    volumes:
+      - ./database-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: votura
+      POSTGRES_PASSWORD: votura
+      POSTGRES_DB: votura
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U votura' ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - votura
+
+  backend:
+    image: ghcr.io/se-uulm/votura-backend:latest
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://votura:votura@postgres:5432/votura?schema=public
+      PEPPER: supersecretpepper
+      BITS_PRIME_P: 4096
+      KEY_GEN_TIMEOUT_MINUTES: 15
+      SMTP_HOST: smtp.domain.com
+      SMTP_PORT: 465
+      SMTP_SECURE: false
+      MAIL_SENDER_NAME: Votura
+      MAIL_SENDER_EMAIL: noreply@domain.com
+      FRONTEND_BASE_URL: https://domain.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.voturaBackend.rule=Host(`api.domain.com`)
+      - traefik.http.routers.voturaBackend.entrypoints=http,https
+      - traefik.http.services.voturaBackend.loadbalancer.server.port=4000
+      - traefik.http.routers.voturaBackend.tls=true
+      - traefik.http.routers.voturaBackend.tls.certresolver=tls
+    networks:
+      - traefik
+      - votura
+
+  frontend:
+    image: ghcr.io/se-uulm/votura-frontend:latest
+    restart: always
+    environment:
+      BACKEND_BASE_URL: https://api.domain.com
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.voturaFrontend.rule=Host(`domain.com`)
+      - traefik.http.routers.voturaFrontend.entrypoints=http,https
+      - traefik.http.routers.voturaFrontend.tls=true
+      - traefik.http.routers.voturaFrontend.tls.certresolver=tls
+    networks:
+      - traefik
+      - votura

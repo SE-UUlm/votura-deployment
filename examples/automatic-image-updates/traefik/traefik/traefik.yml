@@ -1,0 +1,39 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+  format: common
+  filePath: /var/log/traefik/traefik.log
+
+accesslog:
+  format: common
+  filePath: /var/log/traefik/access.log
+
+api:
+  dashboard: false
+
+entryPoints:
+  http:
+    address: :80
+    http:
+      redirections:
+        entrypoint:
+          to: https
+          scheme: https
+  https:
+    address: :443
+
+certificatesResolvers:
+  tls:
+    acme:
+      email: tls@domain.com
+      storage: /ssl-certs/acme.json
+      httpChallenge:
+        entrypoint: http
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: traefik-proxy
