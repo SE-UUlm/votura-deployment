@@ -1,5 +1,5 @@
 networks:
-  traefik:
+  traefik-proxy:
     external: true
   votura:
 
@@ -53,7 +53,7 @@ services:
       - traefik.http.routers.voturaBackend.tls=true
       - traefik.http.routers.voturaBackend.tls.certresolver=tls
     networks:
-      - traefik
+      - traefik-proxy
       - votura
 
   frontend:
@@ -69,7 +69,7 @@ services:
       - traefik.http.routers.voturaFrontend.tls=true
       - traefik.http.routers.voturaFrontend.tls.certresolver=tls
     networks:
-      - traefik
+      - traefik-proxy
       - votura
 
   updater:
